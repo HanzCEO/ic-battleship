@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "battleship_backend": {
+      "candid": "src/battleship_backend/battleship_backend.did",
+      "package": "battleship_backend",
+      "type": "rust"
+    },
+    "battleship_frontend": {
+      "dependencies": [
+        "battleship_backend"
+      ],
+      "source": [
+        "src/battleship_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "battleship_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
