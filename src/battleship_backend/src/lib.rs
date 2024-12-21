@@ -3,6 +3,7 @@ mod types;
 use types::*;
 use std::collections::HashMap;
 
+const MINIMAL_SHIPS: usize = 10;
 thread_local! {
 	pub static STATE: std::cell::RefCell<State> = std::cell::RefCell::default();
 }
@@ -49,6 +50,8 @@ fn create_game(home: String) -> u32 {
 		let game = Game {
 			home,
 			away: None,
+			home_ready: false,
+			away_ready: false,
 			home_board: HashMap::new(),
 			away_board: HashMap::new(),
 			creation_time: ic_cdk::api::time() as u32,
@@ -86,7 +89,40 @@ fn join_game(id: u32, username: String) -> bool {
 }
 
 #[ic_cdk::update]
+fn player_ready(id: u32, username: String) -> bool {
+	STATE.with(|s| {
+		let mut state = s.borrow_mut();
+		if let Some(game) = state.games.get_mut(&id) {
+			if game.home == username {
+				game.home_ready = true;
+				game.away_ready
+			} else if game.away.as_ref() == Some(&username) {
+				game.away_ready = true;
+				game.home_ready
+			} else {
+				false
+			}
+		} else {
+			false
+		}
+	})
+}
+
+#[ic_cdk::query]
+fn game_ready(id: u32) -> bool {
+	STATE.with(|s| {
+		let mut state = s.borrow_mut();
+		if let Some(game) = state.games.get_mut(&id) {
+			game.home_ready && game.away_ready
+		} else {
+			false
+		}
+	})
+}
+
+#[ic_cdk::update]
 fn place_ships(game_id: u32, username: String, ships: Vec<(u32, u32)>) -> bool {
+	if !game_ready(game_id) { return false }
 	STATE.with(|s| {
 		let mut state = s.borrow_mut();
 		if let Some(game) = state.games.get_mut(&game_id) {
@@ -111,6 +147,7 @@ fn place_ships(game_id: u32, username: String, ships: Vec<(u32, u32)>) -> bool {
 
 #[ic_cdk::update]
 fn shoot(game_id: u32, username: String, coordinate: (u32, u32)) -> bool {
+	if !game_ready(game_id) { return false }
 	if coordinate.0 >= 8 || coordinate.1 >= 8 {
 		return false
 	}
@@ -139,13 +176,19 @@ fn shoot(game_id: u32, username: String, coordinate: (u32, u32)) -> bool {
 
 #[ic_cdk::query]
 fn is_game_over(game_id: u32) -> Option<Game> {
+	if !game_ready(game_id) { return None }
+
 	STATE.with(|s| {
 		let mut state = s.borrow_mut();
 		if let Some(game) = state.games.get_mut(&game_id) {
+			if game.home_board.len() < MINIMAL_SHIPS || game.away_board.len() < MINIMAL_SHIPS {
+				return None
+			}
+			
 			let home_ships_sunk = game.home_board.values().all(|&(is_ship, is_shot)| !is_ship || (is_ship && is_shot));
 			let away_ships_sunk = game.away_board.values().all(|&(is_ship, is_shot)| !is_ship || (is_ship && is_shot));
 
-			if home_ships_sunk || away_ships_sunk {
+			if !game.away.is_none() && (home_ships_sunk || away_ships_sunk) {
 				game.is_over = true;
 				game.winner = if home_ships_sunk {
 					game.away.clone().unwrap_or_default()

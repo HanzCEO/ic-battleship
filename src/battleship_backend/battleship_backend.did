@@ -2,6 +2,8 @@ type Game = record {
   creation_time : nat32;
   is_over : bool;
   home_board : vec record { record { nat32; nat32 }; record { bool; bool } };
+  away_ready : bool;
+  home_ready : bool;
   away : opt text;
   home : text;
   winner : text;
@@ -9,9 +11,11 @@ type Game = record {
 };
 service : () -> {
   create_game : (text) -> (nat32);
+  game_ready : (nat32) -> (bool) query;
   is_game_over : (nat32) -> (opt Game) query;
   join_game : (nat32, text) -> (bool);
   place_ships : (nat32, text, vec record { nat32; nat32 }) -> (bool);
+  player_ready : (nat32, text) -> (bool);
   query_game_id : (nat32) -> (bool) query;
   shoot : (nat32, text, record { nat32; nat32 }) -> (bool);
 }
