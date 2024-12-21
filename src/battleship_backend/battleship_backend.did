@@ -1,3 +1,17 @@
-service : {
-    "greet": (text) -> (text) query;
+type Game = record {
+  creation_time : nat32;
+  is_over : bool;
+  home_board : vec record { record { nat32; nat32 }; record { bool; bool } };
+  away : opt text;
+  home : text;
+  winner : text;
+  away_board : vec record { record { nat32; nat32 }; record { bool; bool } };
+};
+service : () -> {
+  create_game : (text) -> (nat32);
+  is_game_over : (nat32) -> (opt Game) query;
+  join_game : (nat32, text) -> (bool);
+  place_ships : (nat32, text, vec record { nat32; nat32 }) -> (bool);
+  query_game_id : (nat32) -> (bool) query;
+  shoot : (nat32, text, record { nat32; nat32 }) -> (bool);
 }
