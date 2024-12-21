@@ -76,7 +76,7 @@ fn join_game(id: u32, username: String) -> bool {
 	STATE.with(|s| {
 		let mut state = s.borrow_mut();
 		if let Some(game) = state.games.get_mut(&id) {
-			if game.away.is_none() {
+			if game.away.is_none() && game.home != username {
 				game.away = Some(username);
 				true
 			} else {
